@@ -1,0 +1,371 @@
+import React from 'react';
+import {Form, Field} from 'react-final-form';
+import {compose, lifecycle} from 'recompose';
+import {sessionService} from 'redux-react-session';
+
+import RaisedButton from 'material-ui/RaisedButton';
+import axios from 'axios';
+
+import TextField from './ff-mui/TextField';
+import PasswordField from './ff-mui/PasswordField';
+import LogoutButton from './LogoutButton.jsx';
+
+const doLogin = values => axios.post('/login', values).then((response) => {
+  console.log(response);
+  if (response.data && response.data.role) {
+    const role = response.data.role;
+    const location = role === 'user' ? '/UserHomeScreen' : '/AdminDash';
+    window.sessionStorage.setItem("role", role);
+    window.document.location = location;
+    window.sessionStorage.setItem("authenticated", true);
+  } else {
+    alert(response.data.error);
+  }
+
+}).catch((error) => {
+  console.log('error');
+  console.log(error);
+});;
+
+const onSubmit = async values => {
+  await doLogin(values);
+}
+const LoginForm = () => {
+  let authenticated = window.sessionStorage.getItem("authenticated");
+  console.log('authenticated form');
+  console.log(authenticated, typeof authenticated);
+  if (authenticated === "true")
+    return (<div>
+      <div>Ste prihlasený</div>
+      <LogoutButton/>
+    </div>);
+  else
+    return (<Form onSubmit={onSubmit} validate={values => {
+        const errors = {};
+        if (!values.login) {
+          errors.username = "Required";
+        }
+        if (!values.password) {
+          errors.password = "Required";
+        }
+        return errors;
+      }} render={({handleSubmit, pristine, invalid}) => (<form onSubmit={handleSubmit}>
+        <div>
+          <Field name="login" component={TextField} placeholder="Prihlasovacie meno"/>
+          <Field name="password" component={PasswordField} placeholder="Heslo"/>
+        </div>
+        <button type="submit" disabled={pristine || invalid}>
+          Potrvdiť
+        </button>
+      </form>)}/>)
+}
+
+export default compose(lifecycle({
+  componentWillMount() {
+    console.log(":DidMount");
+    axios.get('/userProfile/isAuthenticated').then((response) => {
+      if (response.data.authenticated) {
+        window.sessionStorage.setItem("authenticated", response.data.authenticated);
+      }
+    }).catch((error) => {
+      console.log(error);
+    });;
+
+    console.log(this.props)
+  }
+}))(LoginForm);
+
+
+
+
+import React, {Component} from 'react';
+import {List, ListItem, Paper} from 'material-ui';
+import {Form, Field} from 'react-final-form';
+import {compose, withState} from 'recompose';
+import RaisedButton from 'material-ui/RaisedButton';
+import axios from 'axios';
+
+import TextField from '../ff-mui/TextField';
+import PasswordField from '../ff-mui/PasswordField';
+import styles from '../../css';
+
+class User extends Component {
+
+  constructor(props) {
+    super(props);
+    this.state = {
+      user: {
+        firstname: 'Matej',
+        lastname: 'Pliesovsky',
+        dob: '19.9.1991',
+        street: 'Lomnicka 3',
+        city: 'Kosice',
+        zip: '040 01',
+        state: 'Slovakia',
+        drivinglicence: 'EX034098'
+      }
+    }
+    this.fetchUsers = this.fetchUsers.bind(this);
+  }
+
+  fetchUsers() {
+    axios.get('/users').then((response) => {
+      this.setState({user: response.data});
+    }).catch((error) => {
+      console.log(error);
+    });
+  }
+
+  componentWillMount() {
+    this.fetchUsers();
+  }
+
+  render() {
+    return (<div style={styles.user.posFields}>
+      <h2 >Profil jazdca</h2>
+      Tu môžete upraviť svoj profil.<br/>
+    <Paper style={styles.user.profTab} zDepth={0}>
+        <Field name="login" component={TextField} placeholder="Prihlasovacie meno"/>
+        <Field name="firstname" component={TextField} placeholder="Meno"/><br/>
+        <Field name="lastname" component={TextField} placeholder="Priezvisko"/>
+        <Field name="dob" component={TextField} placeholder="Dátum narodenia"/><br/>
+        <Field name="street" component={TextField} placeholder="Ulica"/>
+        <Field name="city" component={TextField} placeholder="Mesto"/><br/>
+        <Field name="zip" component={TextField} placeholder="PSČ"/>
+        <Field name="state" component={TextField} placeholder="Štát"/><br/>
+        <Field name="phone" component={TextField} placeholder="Telefón"/>
+        <Field name="email" component={TextField} placeholder="E-mail"/><br/>
+        <Field name="team" component={TextField} placeholder="Tím"/>
+        <Field name="drivinglicence" component={TextField} placeholder="Číslo vodičského preukazu"/><br/>
+        <Field name="password" component={PasswordField} placeholder="Heslo"/>
+        <Field name="password1" component={PasswordField} placeholder="Potrvrdenie hesla"/>
+      </Paper>
+      <img style={styles.user.circular} src="http://profile.actionsprout.com/default.jpeg"/>
+      <RaisedButton label="Nahrať fotku" labelPosition="before" style={styles.user.upload} containerElement="label"><input type="file" style={styles.user.imgInput}/></RaisedButton>
+    </div>);
+  }
+}
+
+export default User;
+
+
+import React, {Component} from 'react';
+import {List, ListItem, Paper} from 'material-ui';
+import {compose, withState} from 'recompose';
+import RaisedButton from 'material-ui/RaisedButton';
+import axios from 'axios';
+
+import TextField from 'material-ui/TextField';
+import styles from '../../css';
+
+class User extends Component {
+
+  constructor(props) {
+    super(props);
+    this.state = {
+      user: {
+        login: "Subarista",
+        firstname: "Tomáš",
+        lastname: "Konečný",
+        dob: "20.5.1989",
+        street: "Sabinovská 20",
+        city: "Prešov",
+        zip: "03303",
+        state: "Slovenská republika",
+        phone: "0919202020",
+        email: "konecny.t@outlook.com",
+        team: "SRSystem",
+        drivinglicence: "EA2919239",
+        "password": "Heslo123",
+      }
+    }
+    this.fetchUsers = this.fetchUsers.bind(this);
+  }
+
+  fetchUsers() {
+    axios.get('/users').then((response) => {
+      this.setState({user: response.data});
+    }).catch((error) => {
+      console.log(error);
+    });
+  }
+
+  componentWillMount() {
+    this.fetchUsers();
+  }
+
+  render() {
+    return (<div style={styles.user.posFields}>
+      <h2 >Profil jazdca</h2>
+      Tu môžete upraviť svoj profil.<br/>
+      <Paper style={styles.user.profTab} zDepth={0}>
+        <TextField name="login" component={TextField} value={this.state.user.login}/>
+        <TextField name="firstname" component={TextField} value={this.state.user.firstname}/><br/>
+        <TextField name="lastname" component={TextField} value={this.state.user.lastname}/>
+        <TextField name="dob" component={TextField} value={this.state.user.dob}/><br/>
+        <TextField name="street" component={TextField} value={this.state.user.street}/>
+        <TextField name="city" component={TextField} value={this.state.user.city}/><br/>
+        <TextField name="zip" component={TextField} value={this.state.user.zip}/>
+        <TextField name="state" component={TextField} value={this.state.user.state}/><br/>
+        <TextField name="phone" component={TextField} value={this.state.user.phone}/>
+        <TextField name="email" component={TextField} value={this.state.user.email}/><br/>
+        <TextField name="team" component={TextField} value={this.state.user.team}/>
+        <TextField name="drivinglicence" component={TextField} value={this.state.user.drivinglicence}/><br/>
+        <TextField name="password" component={TextField} value={this.state.user.password}/>
+        <TextField name="password1" component={TextField} value={this.state.user.password1}/>
+      </Paper>
+      <img style={styles.user.circular} src="http://profile.actionsprout.com/default.jpeg"/>
+      <RaisedButton label="Nahrať fotku" labelPosition="before" style={styles.user.upload} containerElement="label"><input type="file" style={styles.user.imgInput}/></RaisedButton>
+    </div>);
+  }
+}
+
+export default User;
+
+
+import React, {Component} from 'react';
+import TextField from 'material-ui/TextField';
+import RaisedButton from 'material-ui/RaisedButton';
+import axios from 'axios';
+
+import styles from '../../css';
+
+class CoDriver extends Component {
+
+  constructor(props) {
+    super(props);
+    this.state = {
+      user: {
+        name: ''
+      }
+    }
+    this.fetchUsers = this.fetchUsers.bind(this);
+  }
+
+  fetchUsers() {
+    axios.get('/users').then((response) => {
+      this.setState({user: response.data});
+    }).catch((error) => {
+      console.log(error);
+    });
+  }
+
+  componentWillMount() {
+    this.fetchUsers();
+  }
+
+  render() {
+    return (<div style={styles.codriver.posFields}>
+      <h2>Profil spolujzdca</h2>
+      Tu môžete upraviť profil spolujazdca.<br/>
+      <TextField id="text-field-default" defaultValue="Meno"/><br/>
+      <TextField id="text-field-default" defaultValue="Priezvisko"/><br/>
+      <TextField id="text-field-default" defaultValue="Dátum narodenia"/><br/>
+      <TextField id="text-field-default" defaultValue="Ulica a číslo"/><br/>
+      <TextField id="text-field-default" defaultValue="Mesto"/><br/>
+      <TextField id="text-field-default" defaultValue="PSČ"/><br/>
+      <TextField id="text-field-default" defaultValue="Štát"/><br/>
+      <TextField id="text-field-default" defaultValue="Licencia"/><br/>
+      <img style={styles.codriver.circular} src="http://profile.actionsprout.com/default.jpeg"/>
+      <RaisedButton label="Nahrať fotku" labelPosition="before" style={styles.codriver.upload} containerElement="label"><input type="file" style={styles.codriver.imgInput}/></RaisedButton>
+    </div>);
+  }
+}
+
+export default CoDriver;
+
+/////////////////////////////////////////////
+
+import React from 'react';
+import {Form, Field} from 'react-final-form';
+import Paper from 'material-ui/Paper';
+import {Link} from 'react-router-dom';
+import {compose, lifecycle} from 'recompose';
+import {sessionService} from 'redux-react-session';
+import {List, ListItem} from 'material-ui/List';
+import RaisedButton from 'material-ui/RaisedButton';
+import axios from 'axios';
+
+import TextField from './ff-mui/TextField';
+import HiddenField from './ff-mui/HiddenField';
+import styles from '../css';
+
+const onSubmit = async values => {
+  await doInsertCar(values);
+}
+
+const EventRegistrationComp = ({initialData}) => {
+  let authenticated = window.sessionStorage.getItem("authenticated");
+  // window.sessionStorage.setItem("authenticated", true);
+  if (authenticated === "true")
+
+    return (<Form onSubmit={onSubmit} initialValues={initialData} validate={values => {
+        const errors = {};
+
+      }} render={({handleSubmit, pristine, invalid}) => (<form onSubmit={handleSubmit}>
+        <div>
+          <RaisedButton containerElement={<Link to = "/Details" />} label="Späť" secondary={true} style={styles.eventregcomp.back}/>
+          <div style={styles.eventregcomp.evRegTab}>
+            <div style={styles.eventregcomp.topText}>Prihláška</div>
+            <ListItem primaryText="Údaje o jazdcovi"/>
+            <Field id="firstname" name="firstname" component={TextField} placeholder="Meno"/>
+            <Field id="lastname" name="lastname" component={TextField} placeholder="Priezvisko"/>
+            <Field id="dob" name="dob" component={TextField} placeholder="Dátum narodenia"/>
+            <Field id="street" name="street" component={TextField} placeholder="Ulica"/>
+            <Field id="city" name="city" component={TextField} placeholder="Mesto"/>
+            <Field id="zip" name="zip" component={TextField} placeholder="PSČ"/>
+            <Field id="state" name="state" component={TextField} placeholder="Štát"/>
+            <Field id="phone" name="phone" component={TextField} placeholder="Telefón"/>
+            <Field id="email" name="email" component={TextField} placeholder="E-mail"/>
+            <Field id="team" name="team" component={TextField} placeholder="Tím"/>
+            <Field id="drivinglicence" name="drivinglicence" component={TextField} placeholder="Číslo vodičského preukazu"/>
+          </div>
+          <div style={styles.eventregcomp.evRegCoDriverTab}>
+            <ListItem primaryText="Údaje o spolujazdcovi"/>
+            <Field id="co_firstname" name="co_firstname" component={TextField} placeholder="Meno"/>
+            <Field id="co_lastname" name="co_lastname" component={TextField} placeholder="Priezvisko"/><br/>
+            <Field id="co_dob" name="co_dob" component={TextField} placeholder="Dátum narodenia"/>
+            <Field id="co_street" name="co_street" component={TextField} placeholder="Ulica"/><br/>
+            <Field id="co_city" name="co_city" component={TextField} placeholder="Mesto"/>
+            <Field id="co_zip" name="co_zip" component={TextField} placeholder="PSČ"/><br/>
+            <Field id="co_state" name="co_state" component={TextField} placeholder="Štát"/>
+            <Field id="co_phone" name="co_phone" component={TextField} placeholder="Telefón"/><br/>
+            <Field id="co_email" name="co_email" component={TextField} placeholder="E-mail"/>
+            <Field id="co_team" name="co_team" component={TextField} placeholder="Tím"/><br/>
+            <Field id="co_drivinglicence" name="co_drivinglicence" component={TextField} placeholder="Číslo vodičského preukazu"/>
+            <br/>
+            <br/>
+          </div>
+          <div style={styles.eventregcomp.evRegTabCar}>
+            <ListItem primaryText="Údaje o vozidle"/>
+            <Field id="manufacturer" name="manufacturer" component={TextField} placeholder="Výrobca"/>
+            <Field id="carmodel" name="carmodel" component={TextField} placeholder="Model"/><br/>
+            <Field id="enginevalue" name="enginevalue" component={TextField} placeholder="Objem motora"/>
+            <Field id="power" name="power" component={TextField} placeholder="Výkon"/><br/>
+            <Field id="turbo" name="turbo" component={TextField} placeholder="Turbo"/>
+            <Field id="gear" name="gear" component={TextField} placeholder="Pohon"/><br/>
+            <Field id="evidence_number" name="evidence_number" component={TextField} placeholder="ŠPZ"/>
+            <br/>
+
+            <button type="submit" disabled={pristine || invalid}>
+              Potrvdiť
+            </button>
+          </div>
+
+        </div>
+      </form>)}/>)
+}
+
+export default compose(lifecycle({
+  componentWillMount() {
+    axios.get('/userProfile/loadUserData').then((response) => {
+      if (response.data.authenticated === false) {
+        window.sessionStorage.setItem("authenticated", false);
+        window.location = "/";
+      }
+      this.setState({user: response.data});
+    }).catch((error) => {
+      console.log(error);
+    });;
+  }
+}))(EventRegistrationComp);
